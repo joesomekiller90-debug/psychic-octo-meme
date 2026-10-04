@@ -148,7 +148,12 @@ export class GameStore {
 
   private setupTabGuard(): void {
     if (typeof BroadcastChannel === 'undefined') return;
-    this.channel = new BroadcastChannel('kindled-roads');
+    try {
+      this.channel = new BroadcastChannel('kindled-roads');
+    } catch {
+      // Some sandboxed frames refuse BroadcastChannel; the game still runs.
+      return;
+    }
     this.channel.onmessage = (ev) => {
       const msg = ev.data as { type: string; id: string };
       if (msg?.type === 'claim' && msg.id !== this.tabId && !this.dormant) {
