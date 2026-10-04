@@ -2,7 +2,7 @@
   "name": "kindled-roads",
   "private": true,
   "version": "1.0.0",
-  "description": "Kindled Roads — an idle frontier-guild adventure.",
+  "description": "Kindled Roads \u2014 an idle frontier-guild adventure.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -22,5 +22,8 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
     "vitest": "^5.0.3"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
   }
 }

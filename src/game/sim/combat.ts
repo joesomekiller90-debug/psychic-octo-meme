@@ -60,7 +60,6 @@ interface Unit {
   acts: number;
   poison: number;
   poisonDmg: number;
-  slow: number;
   stunned: boolean;
   bulwark: number;
   barrier: number;
@@ -91,7 +90,7 @@ export function runCombat(opts: CombatOptions): CombatOutcome {
       uid: uid++, side: 'hero', id: h.id, name: def.name.split(' ')[0],
       max: h.stats.vigor, hp: Math.max(0, h.hp), might: h.stats.might, guard: h.stats.guard, speed: h.stats.speed,
       row: h.row, ranged: h.stats.ranged, pierce: h.stats.pierce, mending: h.stats.mending, shock: h.stats.shock,
-      role: def.role, traits: [], boss: false, next: 0, acts: 0, poison: 0, poisonDmg: 0, slow: 0, stunned: false,
+      role: def.role, traits: [], boss: false, next: 0, acts: 0, poison: 0, poisonDmg: 0, stunned: false,
       bulwark: 0, barrier: 0, marked: false, enraged: false, summoned: false, overcharged: false, firstStrike: false, counted: false,
     });
   }
@@ -111,7 +110,7 @@ export function runCombat(opts: CombatOptions): CombatOutcome {
     const u: Unit = {
       uid: uid++, side: 'enemy', id, name, max: def.hp, hp: def.hp, might: def.might, guard: def.guard, speed: def.speed,
       row: 'front', ranged: def.traits.includes('ranged') || def.traits.includes('flying'), pierce: 0, mending: 0, shock: 0,
-      traits: def.traits, boss: !!def.boss, next: at, acts: 0, poison: 0, poisonDmg: 0, slow: 0, stunned: false,
+      traits: def.traits, boss: !!def.boss, next: at, acts: 0, poison: 0, poisonDmg: 0, stunned: false,
       bulwark: 0, barrier: 0, marked: false, enraged: false, summoned, overcharged: false, firstStrike: false, counted: false,
     };
     units.push(u);
@@ -121,7 +120,6 @@ export function runCombat(opts: CombatOptions): CombatOutcome {
 
   const interval = (u: Unit) => {
     let s = u.speed;
-    if (u.slow > 0) s *= 0.7;
     if (u.overcharged) s *= 1.5;
     return 1000 / Math.max(1, s);
   };
@@ -344,8 +342,9 @@ export function runCombat(opts: CombatOptions): CombatOutcome {
           const d = strike(u, t, 1.75);
           if (d === null) log('hit', `${u.name}’s pinning shot misses ${t.name}.`);
           else {
-            t.slow = 1;
-            log('hit', `${u.name} looses a pinning shot at ${t.name}: ${d} damage${absorbNote()}, slowed.`);
+            // Pinned: the target's next action comes 30% of an action later.
+            t.next += (1000 / Math.max(1, t.speed)) * 0.3;
+            log('hit', `${u.name} looses a pinning shot at ${t.name}: ${d} damage${absorbNote()}, pinned.`);
             if (t.hp <= 0) onEnemyDown(t);
             else checkThresholds(t, now);
           }
@@ -400,7 +399,6 @@ export function runCombat(opts: CombatOptions): CombatOutcome {
       log('status', `${e.name} is staggered and loses its action.`);
       return;
     }
-    if (e.slow > 0) e.slow--;
     if (e.traits.includes('overcharge') && !e.overcharged && e.hp <= e.max / 3) {
       e.overcharged = true;
       log('enemy', `${e.name} overcharges, pistons screaming! (acts 50% more often)`);
@@ -510,7 +508,6 @@ export function runCombat(opts: CombatOptions): CombatOutcome {
     const now = u.next;
     if (u.side === 'hero') heroAct(u, now);
     else enemyAct(u);
-    if (u.side === 'hero' && u.slow > 0) u.slow--;
     u.acts++;
     u.next = now + interval(u);
     actions++;
