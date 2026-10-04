@@ -1282,6 +1282,8 @@ button.act-card:hover {
   cursor: pointer;
 }
 .node-shape {
+  transform-box: fill-box;
+  transform-origin: center;
   fill: #1b262d;
   stroke: rgba(255, 255, 255, 0.35);
   stroke-width: 2;
@@ -1331,6 +1333,7 @@ button.act-card:hover {
   stroke: var(--amber-2);
   stroke-width: 2;
   animation: pulse 1.8s ease-out infinite;
+  transform-box: fill-box;
   transform-origin: center;
 }
 @keyframes pulse {
@@ -2298,6 +2301,10 @@ button.act-card:hover {
 .ac-controls .btn {
   margin-left: auto;
 }
+.ac-wait {
+  flex-basis: 100%;
+  margin: 0;
+}
 
 /* --- camp ------------------------------------------------------------------------------------------------------- */
 .camp-top {
@@ -2491,6 +2498,7 @@ button.act-card:hover {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
+  align-items: start;
 }
 .codex-card {
   padding: 12px;

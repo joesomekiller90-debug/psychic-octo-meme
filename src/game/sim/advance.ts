@@ -136,6 +136,9 @@ function processDue(state: GameState, ctx: SimContext): void {
       }
     }
     if (!acted) break;
+    // Contract readiness is checked at the moment it happens, so the feed
+    // reads the same however the time span was split.
+    refreshContracts(state, ctx);
   }
 }
 

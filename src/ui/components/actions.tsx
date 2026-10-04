@@ -42,11 +42,12 @@ export function ActionCard({ a }: { a: ActionDef }) {
   if (!av.ok) blocked = `Locked: ${av.reasons.join('; ')}.`;
   else if (!slotFree) blocked = 'Both work-order slots are busy. Cancel one in the activity panel or wait for it to finish.';
   else if (free < hands) blocked = `Needs ${hands} free hand${hands > 1 ? 's' : ''}; ${free} free. Porters on expeditions and other orders use hands.`;
-  else if (a.inputs && !hasItems(s, a.inputs)) {
-    blocked = `Missing ${missingItems(s, a.inputs)
-      .map((m) => `${m.qty} ${ITEMS[m.item].name}`)
-      .join(', ')}.`;
-  }
+  const waiting = !!a.inputs && !hasItems(s, a.inputs);
+  const missingText = waiting
+    ? missingItems(s, a.inputs)
+        .map((m) => `${m.qty} ${ITEMS[m.item].name}`)
+        .join(', ')
+    : '';
   const qtyOpts =
     a.kind === 'craft'
       ? [
@@ -122,9 +123,16 @@ export function ActionCard({ a }: { a: ActionDef }) {
             ]}
             onChange={setHands}
           />
-          <Button variant="primary" icon="play" blocked={blocked} onClick={() => store.act((x, ctx) => startOrder(x, ctx, a.id, hands, target))}>
-            Start
+          <Button
+            variant={waiting ? 'secondary' : 'primary'}
+            icon={waiting ? 'clock' : 'play'}
+            blocked={blocked}
+            title={waiting ? `Missing ${missingText}. The order will wait until the materials arrive.` : undefined}
+            onClick={() => store.act((x, ctx) => startOrder(x, ctx, a.id, hands, target))}
+          >
+            {waiting ? 'Queue' : 'Start'}
           </Button>
+          {waiting && !blocked && <p class="tiny warn-text ac-wait">Missing {missingText}. You can queue it: the order waits until another work order or an expedition brings the materials.</p>}
         </div>
       )}
     </article>

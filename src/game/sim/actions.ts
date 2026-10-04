@@ -188,10 +188,8 @@ export function startOrder(
   if (s < 0) return fail('Both work-order slots are busy. Cancel or wait for one to finish.');
   if (hands < 1 || hands > 2) return fail('A crew is one or two hands.');
   if (freeHands(state) < hands) return fail(`Not enough free hands (${freeHands(state)} free, ${hands} needed). Hands are shared with expedition porters.`);
-  if (def.inputs && !hasItems(state, def.inputs)) {
-    const miss = missingItems(state, def.inputs).map((m) => `${m.qty} ${ITEMS[m.item].name}`).join(', ');
-    return fail(`Missing materials: ${miss}.`);
-  }
+  // Orders may start without their materials: they wait (paused) until the
+  // other slot or a returning expedition supplies them.
   const o: WorkOrder = {
     id: state.nextId++,
     kind: 'action',
@@ -210,7 +208,7 @@ export function startOrder(
   state.stats.ordersStarted += 1;
   pushFeed(state, ctx, 'order', `Started work order: ${def.name}${target ? ` ×${target}` : ''}.`);
   after(state, ctx);
-  return ok(`${def.name} started${o.status === 'blocked' ? ` but paused: ${o.blocked}` : ''}.`);
+  return ok(o.status === 'blocked' ? `${def.name} queued. ${o.blocked}` : `${def.name} started.`);
 }
 
 export function startBuild(state: GameState, ctx: SimContext, upgradeId: string, hands: number, slot?: number): ActionResult {

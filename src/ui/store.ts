@@ -87,6 +87,8 @@ export class GameStore {
   private toastId = 1;
   private channel: BroadcastChannel | null = null;
   private tabId = Math.random().toString(36).slice(2);
+  /** While the tab is hidden, progress is gathered into one summary for the return. */
+  private hidden: { at: number; snap: ReturnType<typeof snapshot>; events: SimEvent[]; capped: number; clockBack: boolean } | null = null;
 
   constructor() {
     const { storage, persistent } = makeStorage();
@@ -131,8 +133,14 @@ export class GameStore {
     this.setupTabGuard();
     this.timer = window.setInterval(() => this.tick(), TICK_MS);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') this.save(true);
-      else this.tick();
+      if (document.visibilityState === 'hidden') {
+        this.tick();
+        this.hidden = { at: Date.now(), snap: snapshot(this.state), events: [], capped: 0, clockBack: false };
+        this.save(true);
+      } else {
+        this.tick();
+        this.endHidden();
+      }
     });
     window.addEventListener('pagehide', () => this.save(true));
     this.emit();
@@ -159,6 +167,15 @@ export class GameStore {
     const now = Date.now();
     const before = snapshot(this.state);
     const res = settle(this.state, now);
+    if (this.hidden) {
+      // Background tab: keep simulating and saving, but hold events for the
+      // single summary shown when the player comes back.
+      this.hidden.events.push(...res.events);
+      this.hidden.capped += res.cappedMs;
+      this.hidden.clockBack ||= res.clockBack;
+      if (res.events.length || now - this.lastSave > SAVE_INTERVAL_MS) this.save(true);
+      return;
+    }
     if (res.elapsed >= SUMMARY_THRESHOLD_MS || res.cappedMs > 0 || res.clockBack) {
       this.recordSummary(before, res);
       if (!this.ui.modal) this.ui.modal = { kind: 'summary' };
@@ -167,6 +184,21 @@ export class GameStore {
     }
     if (res.events.length) this.dirty = true;
     if (this.dirty || now - this.lastSave > SAVE_INTERVAL_MS) this.save(now - this.lastSave > SAVE_INTERVAL_MS);
+    this.emit();
+  }
+
+  private endHidden(): void {
+    const h = this.hidden;
+    this.hidden = null;
+    if (!h) return;
+    const now = Date.now();
+    const away = now - h.at;
+    if (away >= SUMMARY_THRESHOLD_MS || h.capped > 0 || h.clockBack) {
+      this.recordSummary(h.snap, { from: h.at, to: now, elapsed: Math.max(0, away - h.capped), cappedMs: h.capped, clockBack: h.clockBack, events: h.events });
+      if (!this.ui.modal) this.ui.modal = { kind: 'summary' };
+    } else {
+      this.handleEvents(h.events);
+    }
     this.emit();
   }
 

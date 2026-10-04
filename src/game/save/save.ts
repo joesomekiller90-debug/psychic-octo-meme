@@ -288,7 +288,33 @@ export function normalize(raw: Raw, now: number): GameState {
     s.stats.marksEarned = Math.floor(num(st.marksEarned, 0, 0));
   }
   if (Array.isArray(raw.reports)) {
-    s.reports = raw.reports.filter((r) => isObj(r) && typeof r.routeId === 'string' && ROUTES[r.routeId as string] && Array.isArray(r.log)).slice(0, 20) as unknown as GameState['reports'];
+    s.reports = raw.reports
+      .filter((r): r is Raw => isObj(r) && typeof r.routeId === 'string' && !!ROUTES[r.routeId as string] && Array.isArray(r.log))
+      .slice(0, 15)
+      .map((r) => ({
+        ...r,
+        id: Math.floor(num(r.id, 0)),
+        outcome: r.outcome === 'success' || r.outcome === 'defeat' ? r.outcome : 'retreat',
+        members: Array.isArray(r.members) ? r.members.filter((m) => typeof m === 'string' && HEROES[m]) : [],
+        log: (r.log as unknown[]).filter((l) => isObj(l) && typeof l.text === 'string'),
+        loot: intRecord(r.loot, (k) => !!ITEMS[k]),
+        lost: intRecord(r.lost, (k) => !!ITEMS[k]),
+        leftBehind: intRecord(r.leftBehind, (k) => !!ITEMS[k]),
+        used: intRecord(r.used, (k) => !!ITEMS[k]),
+        kills: intRecord(r.kills, (k) => !!ENEMIES[k]),
+        skillXp: isObj(r.skillXp) ? r.skillXp : {},
+        hpAfter: isObj(r.hpAfter) ? r.hpAfter : {},
+        levelUps: Array.isArray(r.levelUps) ? r.levelUps.filter((x) => typeof x === 'string') : [],
+        discoveries: Array.isArray(r.discoveries) ? r.discoveries.filter((x) => typeof x === 'string' && DISCOVERIES[x]) : [],
+        marks: Math.floor(num(r.marks, 0)),
+        heroXp: Math.floor(num(r.heroXp, 0)),
+        sold: Math.floor(num(r.sold, 0)),
+        duration: num(r.duration, 0, 0),
+        run: Math.floor(num(r.run, 1, 1)),
+        drift: typeof r.drift === 'string' ? r.drift : 'clear',
+        risk: r.risk === 'careful' || r.risk === 'bold' ? r.risk : 'standard',
+        unread: r.unread === true,
+      })) as unknown as GameState['reports'];
   }
   if (Array.isArray(raw.feed)) s.feed = raw.feed.filter((f) => isObj(f) && typeof f.text === 'string').slice(0, 40) as unknown as GameState['feed'];
   if (isObj(raw.tutorial)) {
@@ -301,8 +327,17 @@ export function normalize(raw: Raw, now: number): GameState {
     if (rm === 'system' || rm === 'on' || rm === 'off') s.settings.reducedMotion = rm;
     if (typeof raw.settings.confirmDeliver === 'boolean') s.settings.confirmDeliver = raw.settings.confirmDeliver;
   }
-  if (isObj(raw.pendingSummary) && typeof raw.pendingSummary.elapsed === 'number') {
-    s.pendingSummary = raw.pendingSummary as unknown as GameState['pendingSummary'];
+  const ps = raw.pendingSummary;
+  if (
+    isObj(ps) &&
+    typeof ps.elapsed === 'number' &&
+    isObj(ps.items) &&
+    isObj(ps.skillXp) &&
+    isObj(ps.skillLevels) &&
+    isObj(ps.heroLevels) &&
+    ['reports', 'orders', 'builds', 'discoveries', 'attention'].every((k) => Array.isArray(ps[k]))
+  ) {
+    s.pendingSummary = ps as unknown as GameState['pendingSummary'];
   }
 
   // Orders
@@ -339,7 +374,9 @@ export function normalize(raw: Raw, now: number): GameState {
       typeof e.routeId === 'string' && ROUTES[e.routeId] &&
       Array.isArray(e.legs) && e.legs.every((x) => typeof x === 'number') &&
       Array.isArray(e.members) && e.members.every((m) => typeof m === 'string' && HEROES[m]) &&
-      isObj(e.stats) && isObj(e.mods) && isObj(e.hp) && isObj(e.supplies) && isObj(e.plan) && Array.isArray(e.log);
+      isObj(e.stats) && isObj(e.mods) && isObj(e.hp) && isObj(e.supplies) && isObj(e.plan) && Array.isArray(e.log) &&
+      e.members.every((m) => isObj((e.stats as Raw)[m as string]) && typeof (e.hp as Raw)[m as string] === 'number') &&
+      ['travel', 'return', 'rest'].includes(e.phase as string);
     if (okShape) {
       s.expedition = e as unknown as GameState['expedition'];
     } else if (isObj(e.supplies)) {

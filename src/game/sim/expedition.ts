@@ -248,6 +248,13 @@ function partyFrac(exp: ExpeditionRuntime): number {
   return max > 0 ? hp / max : 0;
 }
 
+/** "Kiln Hound ×3, Slagback Crawler" */
+export function groupNames(ids: string[]): string {
+  const counts = new Map<string, number>();
+  for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
+  return [...counts].map(([id, n]) => `${ENEMIES[id].name}${n > 1 ? ` \u00d7${n}` : ''}`).join(', ');
+}
+
 function xpPerUnit(item: string): number {
   const t = ITEMS[item]?.tier ?? 1;
   return t === 1 ? 2 : t === 2 ? 4 : 7;
@@ -343,7 +350,7 @@ export function resolveLeg(state: GameState, exp: ExpeditionRuntime): void {
     const p = Math.min(0.95, route.encounterChance * risk.encounter * (1 + (drift.encounter ?? 0)));
     if (route.encounters.length && rng.chance(p)) {
       enemies = rng.weighted(route.encounters).enemies;
-      title = enemies.map((e) => ENEMIES[e].name).join(', ');
+      title = groupNames(enemies);
     }
   }
   if (enemies) {
@@ -569,7 +576,12 @@ export function finishExpedition(state: GameState, ctx: SimContext, exp: Expedit
     unread: true,
   };
   state.reports.unshift(report);
-  if (state.reports.length > 20) state.reports.length = 20;
+  if (state.reports.length > MAX_REPORTS) state.reports.length = MAX_REPORTS;
+  // Keep full blow-by-blow combat logs only for the most recent reports so
+  // saves stay small; older reports keep their fight summaries.
+  for (let i = FULL_LOG_REPORTS; i < state.reports.length; i++) {
+    for (const e of state.reports[i].log) if (e.fight && e.fight.lines.length) e.fight.lines = [];
+  }
   const word = outcome === 'success' ? 'returned' : outcome === 'retreat' ? (exp.recalled ? 'was recalled' : 'retreated') : 'was defeated';
   pushFeed(state, ctx, outcome === 'success' ? 'expedition' : 'warn', `${route.name}: the party ${word}. +${marks} marks${Object.keys(loot).length ? `, ${supplyLoad(loot)} items` : ''}.`);
   ctx.events.push({ type: 'expedition-return', reportId: report.id, outcome, routeId: route.id });
@@ -592,6 +604,9 @@ export function applyDiscovery(state: GameState, ctx: SimContext | null, id: str
     pushFeed(state, ctx, 'discovery', `Discovered: ${d.name}.`);
   }
 }
+
+const MAX_REPORTS = 15;
+const FULL_LOG_REPORTS = 4;
 
 /** After a successful run with standing orders, the party rests in camp first. */
 export const REST_THRESHOLD = 0.9;

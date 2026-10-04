@@ -3,7 +3,7 @@ import { ENEMIES } from '../../game/data/enemies';
 import { HEROES } from '../../game/data/heroes';
 import { ITEMS, SUPPLY_ORDER } from '../../game/data/items';
 import { DISCOVERIES, DRIFTS, HAZARDS, REGION_LIST, REGIONS, ROUTE_LIST, ROUTES } from '../../game/data/world';
-import { autoPack, dispatch, recall, setStandingOrders, setSupply, updatePlan } from '../../game/sim/actions';
+import { autoPack, dispatch, markReportRead, recall, setStandingOrders, setSupply, updatePlan } from '../../game/sim/actions';
 import { checkPlan, legEnd } from '../../game/sim/expedition';
 import { forecastExpedition, type Forecast } from '../../game/sim/forecast';
 import { formatDuration, pct } from '../../game/sim/format';
@@ -136,7 +136,7 @@ function MapView() {
         ))}
         {/* Region labels */}
         {REGION_LIST.map((r) => {
-          const pos = r.id === 'hollowmere' ? [270, 298] : r.id === 'cinderscar' ? [620, 46] : [815, 600];
+          const pos = r.id === 'hollowmere' ? [230, 612] : r.id === 'cinderscar' ? [620, 46] : [815, 600];
           return (
             <text class={`reg-label ${ui.region === r.id ? 'on' : ''}`} x={pos[0]} y={pos[1]} text-anchor="middle">
               {r.name.toUpperCase()}
@@ -156,8 +156,8 @@ function MapView() {
         {/* Settlements */}
         {[
           { name: 'Fenwick Stile', flag: 'fenwick', x: 590, y: 548 },
-          { name: 'Kilnmouth', flag: 'kilnmouth', x: 890, y: 196 },
-          { name: 'Tollspire', flag: 'tollspire', x: 958, y: 420 },
+          { name: 'Kilnmouth', flag: 'kilnmouth', x: 885, y: 252 },
+          { name: 'Tollspire', flag: 'tollspire', x: 948, y: 372 },
         ].map((t) => (
           <g class={`settle ${s.flags[t.flag] ? 'on' : ''}`} transform={`translate(${t.x} ${t.y})`}>
             <rect x="-9" y="-9" width="18" height="18" rx="3" transform="rotate(45)" />
@@ -202,9 +202,11 @@ function MapView() {
               {active && <circle class="pulse" r="18" />}
               <path class="node-shape" d="M0 -13 L9 0 L0 13 L-9 0z" />
               {!open && <path class="node-lock" d="M-3 -1 h6 v5 h-6z M-2 -1 v-2 a2 2 0 0 1 4 0 v2" />}
-              <text class="node-label" y={-20} text-anchor="middle">
-                {label}
-              </text>
+              {(!hiddenName || sel) && (
+                <text class="node-label" y={-20} x={p.x > 860 ? 14 : 0} text-anchor={p.x > 860 ? 'end' : 'middle'}>
+                  {label}
+                </text>
+              )}
             </g>
           );
         })}
@@ -933,8 +935,19 @@ function Journey() {
 function Reports() {
   const s = store.state;
   if (s.reports.length === 0) return null;
+  const unread = s.reports.filter((r) => r.unread).length;
   return (
-    <Panel title="Recent reports" icon="journal">
+    <Panel
+      title="Recent reports"
+      icon="journal"
+      actions={
+        unread > 1 ? (
+          <Button size="sm" variant="ghost" icon="check" onClick={() => store.act((x) => x.reports.forEach((r) => markReportRead(x, r.id)), { quiet: true })}>
+            Mark all read
+          </Button>
+        ) : undefined
+      }
+    >
       <ul class="report-list">
         {s.reports.slice(0, 8).map((r) => {
           const loot = Object.values(r.loot).reduce((a, b) => a + b, 0);

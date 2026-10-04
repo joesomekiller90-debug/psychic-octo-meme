@@ -80,7 +80,7 @@ const list: ItemDef[] = [
     desc: 'Thrown as an opening volley (see Tactics). Deals 14 damage to every enemy, ignoring Guard.',
     supply: { kind: 'flask', damage: 14 } },
   { id: 'climbing_kit', name: 'Climbing Kit', category: 'supply', tier: 1, value: 8,
-    desc: 'Rope, pitons and a harness. Used up to negate one fall hazard (rockslides, cliffs).',
+    desc: 'Rope, pitons and a harness. Used up to negate one fall or mire hazard (rockslides, cliffs, sinking mire).',
     supply: { kind: 'rope' } },
   { id: 'warding_salve', name: 'Warding Salve', category: 'supply', tier: 2, value: 14,
     desc: 'Applied at departure. Grants every wayfarer +25 Ward for the whole expedition. Only one is used.',

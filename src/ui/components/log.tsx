@@ -40,7 +40,11 @@ export function JourneyLog({ log, live }: { log: LogEntry[]; live?: boolean }) {
                   <Icon name={KIND_ICON[e.kind] ?? 'info'} size={15} />
                 </span>
                 <div class="jlog-text">
-                  {e.fight ? (
+                  {e.fight && e.fight.lines.length === 0 ? (
+                    <span>
+                      {e.text} <span class="tiny muted">(blow-by-blow log kept only for recent reports)</span>
+                    </span>
+                  ) : e.fight ? (
                     <details class="fight">
                       <summary>
                         <span class="fight-enemies">

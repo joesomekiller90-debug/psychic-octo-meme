@@ -9,7 +9,7 @@ const list: EnemyDef[] = [
     loot: [{ item: 'wisp_dust', chance: 0.6, min: 1, max: 1 }],
     desc: 'A drifting knot of thorns and glowing spores.',
     behavior: [
-      'Spore Puff: every second action it poisons a wayfarer (2 damage per action for 3 actions).',
+      'Spore Puff: every second action it poisons a wayfarer (3 damage per action for 3 actions).',
       'Ranged: prefers to strike the back row.',
     ],
     counter: 'Antidotes cure poison instantly. Fragile: focus it down.',
@@ -20,7 +20,7 @@ const list: EnemyDef[] = [
     traits: ['charge'],
     loot: [{ item: 'boar_hide', chance: 0.5, min: 1, max: 1 }],
     desc: 'A bristling fen boar with a back like a hedge.',
-    behavior: ['Charge: every third action it charges the front row for double damage. It lowers its head the action before.'],
+    behavior: ['Charge: every third action it charges the front row for 2.2\u00d7 damage. It lowers its head the action before.'],
     counter: 'High Guard on the front row blunts the charge. Slow, so fast attackers get many shots in.',
   },
   {
@@ -42,7 +42,7 @@ const list: EnemyDef[] = [
     ],
     desc: 'A vast thornback sow grown through with living bramble. The fen bends around her.',
     behavior: [
-      'Charge: every third action, double damage to the front row.',
+      'Charge: every third action, 2.2\u00d7 damage to the front row.',
       'Brood Call: at half health she summons two Bramble Wisps.',
       'Enrage: at half health her Might rises by 50%.',
     ],
@@ -56,7 +56,7 @@ const list: EnemyDef[] = [
     traits: ['armored'],
     loot: [{ item: 'slag_plate', chance: 0.75, min: 1, max: 2 }],
     desc: 'A kiln-heated beetle the size of a cart, shelled in fused slag.',
-    behavior: ['Armored: Guard 8 shrugs off weak blows (every hit still deals at least 30%).'],
+    behavior: ['Armored: Guard 10 shrugs off weak blows (every hit still deals at least 30%).'],
     counter: 'Pierce (mauls, spears) and Ketch’s Blast Charge cut through its shell.',
   },
   {

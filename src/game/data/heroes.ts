@@ -32,7 +32,7 @@ const list: HeroDef[] = [
     growth: { vigor: 4, might: 1.15, guard: 0.15, speed: 0.22 },
     ability: {
       name: 'Pinning Shot',
-      desc: 'Every third action, Wren lands a shot for 175% damage that slows the target (it acts 30% less often for its next two actions).',
+      desc: 'Every third action, Wren lands a shot for 175% damage that slows the target (its next action comes 30% later).',
     },
     passive: {
       name: 'Light Feet',

@@ -532,13 +532,13 @@ export function runCombat(opts: CombatOptions): CombatOutcome {
   for (const h of heroesAll()) h.poison = 0;
 
   const foes = opts.enemies.length + units.filter((u) => u.summoned && u.side === 'enemy').length;
-  const exchanges = Math.ceil(actions / Math.max(1, units.length / 2));
+  const rounds = Math.max(1, ...heroesAll().map((h) => h.acts));
   const endHp = heroesAll().reduce((s, u) => s + u.hp, 0);
   const usedHere = lines.filter((l) => l.k === 'heal' && l.t.includes('drinks')).length;
   const resultWord = result === 'victory' ? 'Victory' : result === 'fled' ? 'Retreat' : 'Defeat';
   const hpList = heroesAll().map((h) => `${h.name} ${Math.round(h.hp)}/${h.max}`).join(', ');
   log('result', `${resultWord}. ${hpList}.`);
-  const summary = `${resultWord} against ${foes} ${foes === 1 ? 'foe' : 'foes'} in ${exchanges} exchanges · ${Math.max(0, Math.round(startHeroHp - endHp + 0))} net health lost${usedHere ? ` · ${usedHere} tonic${usedHere > 1 ? 's' : ''}` : ''}${supportUp && result === 'victory' ? ' · field dressing applied' : ''}`;
+  const summary = `${resultWord} against ${foes} ${foes === 1 ? 'foe' : 'foes'} in ${rounds} rounds · ${Math.max(0, Math.round(startHeroHp - endHp + 0))} net health lost${usedHere ? ` · ${usedHere} tonic${usedHere > 1 ? 's' : ''}` : ''}${supportUp && result === 'victory' ? ' · field dressing applied' : ''}`;
 
   const hp: Record<string, number> = {};
   for (const h of heroesAll()) hp[h.id] = Math.max(1, Math.round(h.hp));
