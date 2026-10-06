@@ -1,0 +1,171 @@
+{
+ "AcornSquirrel": {
+  "Main": "#E8894A",
+  "Accent": "#FFE6C4",
+  "Detail": "#7A4A26",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Blush": "#FF8FA3",
+  "Mouth": "#4A2626",
+  "Teeth": "#FFFFFF"
+ },
+ "BatPup": {
+  "Main": "#8F7BD6",
+  "Accent": "#FFB3D1",
+  "Detail": "#5B4A9E",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Blush": "#FF8FB8",
+  "Mouth": "#3A2040",
+  "Teeth": "#FFFFFF"
+ },
+ "BumblePup": {
+  "Main": "#FFD447",
+  "Accent": "#2B2B33",
+  "Detail": "#BDEBFF",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Blush": "#FF8FB8",
+  "Mouth": "#4A2626"
+ },
+ "GolemCub": {
+  "Main": "#B9A9A0",
+  "Accent": "#7CC46A",
+  "Detail": "#6E625C",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Glow": "#7FF5FF",
+  "Blush": "#FF9FA8",
+  "Mouth": "#3A2E2A"
+ },
+ "KnightCorgi": {
+  "Main": "#F2A65A",
+  "Accent": "#FFFFFF",
+  "Detail": "#9AA6B8",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Glow": "#FFD24D",
+  "Blush": "#FF8FA3",
+  "Mouth": "#4A2626"
+ },
+ "LanternMoth": {
+  "Main": "#B9A3F0",
+  "Accent": "#FFF1C9",
+  "Detail": "#8C6FD8",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Glow": "#FFE36B",
+  "Blush": "#FF9FC8",
+  "Mouth": "#3A2040"
+ },
+ "LilMossjaw": {
+  "Main": "#74C46A",
+  "Accent": "#F4E6A0",
+  "Detail": "#F2C230",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Glow": "#FF6FB0",
+  "Blush": "#FF9FA8",
+  "Mouth": "#2E3A2A",
+  "Teeth": "#FFFFFF"
+ },
+ "MeadowStag": {
+  "Main": "#C98F5A",
+  "Accent": "#FFF3E0",
+  "Detail": "#7A4E32",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Glow": "#FF9EC9",
+  "Blush": "#FF8FA3",
+  "Mouth": "#4A2626"
+ },
+ "MossbackTurtle": {
+  "Main": "#8FD18A",
+  "Accent": "#A9744A",
+  "Detail": "#7A5232",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Glow": "#FF7A5C",
+  "Blush": "#FF9FA8",
+  "Mouth": "#2E3A2A"
+ },
+ "RubbleMole": {
+  "Main": "#9C6B4E",
+  "Accent": "#FF9EB5",
+  "Detail": "#FFC93C",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Glow": "#FFF7AE",
+  "Blush": "#FF8FA3",
+  "Mouth": "#3A2626",
+  "Teeth": "#FFFFFF"
+ },
+ "RuinGryphon": {
+  "Main": "#7FB8F0",
+  "Accent": "#E9C08A",
+  "Detail": "#FFC63D",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Glow": "#7FFFD4",
+  "Blush": "#FF9FC0",
+  "Mouth": "#3A2626"
+ },
+ "RuinheartDragon": {
+  "Main": "#7BCB6A",
+  "Accent": "#F6EBC0",
+  "Detail": "#3E8E4E",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Glow": "#FF5C8A",
+  "Blush": "#FF9FA8",
+  "Mouth": "#2E3A2A",
+  "Teeth": "#FFFFFF"
+ },
+ "RuneOwl": {
+  "Main": "#A3B36A",
+  "Accent": "#F5EBC8",
+  "Detail": "#F2994A",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Glow": "#66E0FF",
+  "Blush": "#FF9FA8",
+  "Mouth": "#3A2626"
+ },
+ "SkellyKitten": {
+  "Main": "#6E5AA8",
+  "Accent": "#F4F1E8",
+  "Detail": "#8A5A3A",
+  "Eyes": "#14121C",
+  "EyeShine": "#FFFFFF",
+  "Glow": "#8CFF7A",
+  "Blush": "#FF9FC8",
+  "Mouth": "#2A2038"
+ },
+ "SleepyOrb": {
+  "Main": "#E7F0A0",
+  "Accent": "#6F8FE8",
+  "Detail": "#FFFFFF",
+  "Eyes": "#2A2A33",
+  "Glow": "#FFF07A",
+  "Blush": "#FF9FB0",
+  "Mouth": "#4A2A2A"
+ },
+ "SlimeBuddy": {
+  "Main": "#7EE07A",
+  "Accent": "#B57BE8",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Blush": "#FF9FB0",
+  "Mouth": "#2E4A2A",
+  "Detail": "#E8FFE0"
+ },
+ "SproutBunny": {
+  "Main": "#C9A8F0",
+  "Accent": "#FFB3CF",
+  "Detail": "#6CCB5F",
+  "Eyes": "#1B1B22",
+  "EyeShine": "#FFFFFF",
+  "Blush": "#FF8FB8",
+  "Mouth": "#3A2040"
+ }
+}
