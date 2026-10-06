@@ -92,3 +92,4 @@ All parts are far below Roblox's 20,000-triangle MeshPart limit.
 - `A4_EnemiesProjectiles_v2.fbx` / `.blend`: enemies, projectiles
 - `previews/`: before/after renders (the colours there are stand-ins; the FBX has no materials)
 - `tools/`: the Blender scripts that produced these files (Blender 4.0+, `blender -b --python <script> -- <args>`)
+- `terrain/`: the new hub terrain (heightmap + colormap for Terrain Editor > Import), the layout reference map, and the Studio setup scripts. See `terrain/README.md`.

@@ -1,0 +1,4 @@
+# intermediates written by tools/make_terrain.py and tools/test/
+*.npy
+tools/test/sim_*
+tools/test/out_*.txt
