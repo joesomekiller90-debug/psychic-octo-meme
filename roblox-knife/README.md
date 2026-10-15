@@ -13,8 +13,8 @@ A Bowie-style knife for a Roblox duels game. It has a slim gold crescent guard w
 
 The model:
 
-- **4,192 triangles** in total, well under Roblox's 20k-per-mesh limit.
-- **About 3.3 studs long.** 1 Blender unit = 1 stud.
+- **4,128 triangles** in total, well under Roblox's 20k-per-mesh limit.
+- **About 2.9 studs long.** 1 Blender unit = 1 stud.
 - **Three parts, one material each:** `Blade`, `Guard` (which includes the collar) and `Handle`. The grip part is named `Handle`, which is the name a Roblox `Tool` needs.
 
 | File | What it is |
@@ -27,7 +27,7 @@ The model:
 
 ## Getting it into Roblox Studio
 
-1. **Home → Import 3D**, then pick `Knife.fbx`. In the import settings, set **Scale Unit** to **Stud**. Check the sizes: `Blade` should be about 0.1 × 0.54 × 1.8 studs and `Handle` about 0.26 × 0.37 × 1.23.
+1. **Home → Import 3D**, then pick `Knife.fbx`. In the import settings, set **Scale Unit** to **Stud**. Check the sizes: `Blade` should be about 0.08 × 0.4 × 1.4 studs and `Handle` about 0.26 × 0.37 × 1.23.
 2. Create a **Tool** in `StarterPack` and name it `Knife`. Move `Blade`, `Guard` and `Handle` from the imported model into the Tool, then delete the empty model.
 3. Add a **Script** to the Tool and paste in `KnifeSetup.server.luau`. It welds the parts to `Handle` and sets materials, colours, `CanCollide = false` and `Massless = true`.
 4. Press Play. The knife is held by the grip with the blade pointing forward and the edge facing down. To angle it differently, for example blade up or reverse grip, edit `Tool.Grip` or use a tool grip editor plugin.

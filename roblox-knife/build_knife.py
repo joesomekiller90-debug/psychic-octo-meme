@@ -28,27 +28,27 @@ OUT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Dimensions (studs)
 # ---------------------------------------------------------------------------
 BLADE_START = 0.0     # blade root sits inside the guard
-BLADE_LEN = 1.8
-SPINE_Z = 0.21        # top of the blade (spine)
-EDGE_Z = -0.33        # bottom of the blade (cutting edge)
-TIP_Z = 0.03          # height of the point
+BLADE_LEN = 1.4
+SPINE_Z = 0.16        # top of the blade (spine)
+EDGE_Z = -0.24        # bottom of the blade (cutting edge)
+TIP_Z = 0.02          # height of the point
 CLIP_START = 0.56     # fraction of the length where the clip point begins
 BELLY_START = 0.42    # fraction of the length where the edge starts sweeping up
-SPINE_HALF_T = 0.05   # half thickness at the spine
+SPINE_HALF_T = 0.042  # half thickness at the spine
 GRIND = 0.66          # primary grind line, as a fraction from the edge to the spine
 EDGE_BEVEL = 0.14     # secondary (cutting) bevel height, same scale
 FULLER = (0.1, 0.52)  # fuller groove start and end, as fractions of the length
-FULLER_DEPTH = 0.022
+FULLER_DEPTH = 0.018
 RICASSO = 0.085       # unsharpened section before the plunge line
 CHOIL = (0.02, 0.07)  # rounded notch at the start of the edge
-CHOIL_DEPTH = 0.05
+CHOIL_DEPTH = 0.04
 JIMPING = (0.1, 0.26) # thumb notches on the spine
-JIMPING_NOTCHES = 7
+JIMPING_NOTCHES = 6
 JIMPING_DEPTH = 0.016
 
-GUARD_Z = (-0.5, 0.36)    # crescent guard extent, edge side to spine side
-GUARD_CURVE = 0.2         # how far the guard tips sweep toward the blade
-GUARD_R = (0.085, 0.06)   # guard cross-section radii (x, y)
+GUARD_Z = (-0.4, 0.29)    # crescent guard extent, edge side to spine side
+GUARD_CURVE = 0.16        # how far the guard tips sweep toward the blade
+GUARD_R = (0.08, 0.055)  # guard cross-section radii (x, y)
 
 HANDLE_TOP = -0.08
 HANDLE_LEN = 1.12
@@ -501,7 +501,7 @@ def main():
     for p in parts:
         print(f"  {p.name:7s} size (studs) {tuple(round(d, 3) for d in p.dimensions)}")
 
-    setup_render(scene, target=Vector((0.0, 0.2, -0.05)))
+    setup_render(scene, target=Vector((0.0, 0.05, -0.04)))
     export(parts, root)
     preview = os.path.join(OUT_DIR, "knife_preview.png")
     scene.render.filepath = preview
