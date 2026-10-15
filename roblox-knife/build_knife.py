@@ -37,6 +37,14 @@ BELLY_START = 0.42    # fraction of the length where the edge starts sweeping up
 SPINE_HALF_T = 0.05   # half thickness at the spine
 GRIND = 0.66          # primary grind line, as a fraction from the edge to the spine
 EDGE_BEVEL = 0.14     # secondary (cutting) bevel height, same scale
+FULLER = (0.1, 0.52)  # fuller groove start and end, as fractions of the length
+FULLER_DEPTH = 0.022
+RICASSO = 0.085       # unsharpened section before the plunge line
+CHOIL = (0.02, 0.07)  # rounded notch at the start of the edge
+CHOIL_DEPTH = 0.05
+JIMPING = (0.1, 0.26) # thumb notches on the spine
+JIMPING_NOTCHES = 7
+JIMPING_DEPTH = 0.016
 
 GUARD_Z = (-0.5, 0.36)    # crescent guard extent, edge side to spine side
 GUARD_CURVE = 0.2         # how far the guard tips sweep toward the blade
@@ -46,7 +54,6 @@ HANDLE_TOP = -0.08
 HANDLE_LEN = 1.12
 HANDLE_RX = 0.12
 HANDLE_RZ = 0.17
-HANDLE_HOOK = 0.13        # how far the butt hooks toward the edge side
 
 RING_SEGMENTS = 20
 SMOOTH_ANGLE = math.radians(50)
@@ -164,59 +171,107 @@ def lerp_profile(profile, u):
 # ---------------------------------------------------------------------------
 # Parts
 # ---------------------------------------------------------------------------
-def blade_profile(t):
-    """Spine and edge heights at fraction t along the blade."""
+def blade_profile(t, notches=True):
+    """Spine and edge heights at fraction t along the blade. With
+    notches=False the jimping and choil are left out, which gives the smooth
+    outline the grind lines and fuller are placed against."""
     # clip point: the spine dips in a concave curve down to the point
     s = max(0.0, (t - CLIP_START) / (1 - CLIP_START))
     z_top = SPINE_Z - (SPINE_Z - TIP_Z) * (1 - (1 - s) ** 1.9)
     # belly: the edge sweeps up in a convex curve to the point
     b = max(0.0, (t - BELLY_START) / (1 - BELLY_START))
     z_bot = EDGE_Z + (TIP_Z - EDGE_Z) * b ** 2.3
+    if not notches:
+        return z_top, z_bot
+
+    # jimping: thumb notches cut into the spine
+    j0, j1 = JIMPING
+    if j0 <= t <= j1:
+        phase = (t - j0) / (j1 - j0) * JIMPING_NOTCHES
+        z_top -= JIMPING_DEPTH * (1 - abs(2 * (phase % 1.0) - 1))
+    # choil: rounded notch where the sharpened edge begins
+    c0, c1 = CHOIL
+    if c0 < t < c1:
+        u = (t - c0) / (c1 - c0) * 2 - 1
+        z_bot += CHOIL_DEPTH * math.sqrt(1 - u * u)
     return z_top, z_bot
 
 
+def blade_stations():
+    """Fractions along the blade where cross-sections are placed: denser
+    toward the curved tip, plus extra ones to cut the choil and jimping."""
+    base = [1 - (1 - k / 36) ** 1.5 for k in range(36)]
+    c0, c1 = CHOIL
+    choil = [c0 + (c1 - c0) * k / 8 for k in range(9)]
+    j0, j1 = JIMPING
+    jimping = [j0 + (j1 - j0) * k / (2 * JIMPING_NOTCHES) for k in range(2 * JIMPING_NOTCHES + 1)]
+    features = sorted(choil + jimping)
+    # drop base stations that would crowd the feature stations
+    kept = [t for t in base if t == 0.0 or min(abs(t - f) for f in features) > 0.006]
+    stations = sorted(kept + features)
+    detail = {t for t in features}
+    return stations, detail
+
+
 def build_blade(material, parent):
-    """Bowie blade: clip point with a sharpened swedge, flat primary grind and
-    a bright secondary cutting bevel along the edge."""
+    """Bowie blade: clip point with a sharpened swedge, a fuller groove, thumb
+    jimping on the spine, an unsharpened ricasso with a choil and plunge line,
+    a flat primary grind and a bright secondary cutting bevel."""
     bm = bmesh.new()
-    stations = 30
+    stations, detail = blade_stations()
+    f0, f1 = FULLER
     rings = []
-    for k in range(stations):
-        t = k / stations
-        t = 1 - (1 - t) ** 1.5  # more stations toward the curved tip
+    for t in stations:
         y = BLADE_START + t * BLADE_LEN
         z_top, z_bot = blade_profile(t)
-        h = z_top - z_bot
+        smooth_top, smooth_bot = blade_profile(t, notches=False)
+        h = smooth_top - smooth_bot
 
         taper = 1 - 0.45 * t
         spine_t = SPINE_HALF_T * taper
         # the clip is ground to a false edge
         clip_t = spine_t * (1 - 0.85 * smoothstep(CLIP_START, CLIP_START + 0.16, t))
-        bevel_t = spine_t * 0.38
-        edge_t = 0.004 * (1 - t)
-        z_grind = z_bot + h * GRIND
-        z_bevel = z_bot + h * EDGE_BEVEL
+        # ricasso: full thickness until the plunge line, then the grind starts
+        g = smoothstep(RICASSO, RICASSO + 0.05, t)
+        bevel_t = spine_t * (1 - 0.62 * g)
+        edge_t = spine_t * 0.55 * (1 - g) + 0.004 * (1 - t) * g
+        z_grind = smooth_bot + h * GRIND
+        z_bevel = z_bot + h * EDGE_BEVEL * g + 0.012 * (1 - g)
 
-        rings.append([
-            Vector((clip_t, y, z_top)),
-            Vector((spine_t, y, z_grind)),
-            Vector((bevel_t, y, z_bevel)),
-            Vector((edge_t, y, z_bot)),
-            Vector((-edge_t, y, z_bot)),
-            Vector((-bevel_t, y, z_bevel)),
-            Vector((-spine_t, y, z_grind)),
-            Vector((-clip_t, y, z_top)),
-        ])
+        # fuller groove in the flat between the grind line and the spine,
+        # fading in and out at its ends
+        fade = smoothstep(f0, f0 + 0.07, t) * (1 - smoothstep(f1 - 0.07, f1, t))
+        depth = FULLER_DEPTH * fade
+        upper = smooth_top - z_grind
+        zf_top = z_grind + upper * 0.8
+        zf_bot = z_grind + upper * 0.3
+        inset = (zf_top - zf_bot) * 0.28
+
+        side = [
+            (clip_t, z_top),
+            (spine_t, zf_top),
+            (spine_t - depth, zf_top - inset),
+            (spine_t - depth, zf_bot + inset),
+            (spine_t, zf_bot),
+            (spine_t, z_grind),
+            (bevel_t, z_bevel),
+            (edge_t, z_bot),
+        ]
+        ring = [Vector((x, y, z)) for x, z in side]
+        ring += [Vector((-x, y, z)) for x, z in reversed(side)]
+        rings.append(ring)
     rings.append([Vector((0.0, BLADE_START + BLADE_LEN, TIP_Z))])
     vert_rings = loft(bm, rings, cap_start=True, cap_end=False)
 
     # every lengthwise edge is a bevel crease; the cross edges stay smooth so
-    # the curved clip and belly shade cleanly
+    # the curved clip and belly shade cleanly, except where notches are cut
+    sharp_rings = {0} | {k for k, t in enumerate(stations) if t in detail}
     ring_of = {v: k for k, ring in enumerate(vert_rings) for v in ring}
     for e in bm.edges:
         a, b = (ring_of[v] for v in e.verts)
-        if a != b or a == 0:
+        if a != b or a in sharp_rings:
             e.smooth = False
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
     return bm_to_object(bm, "Blade", material, parent, smooth_angle=None)
 
 
@@ -260,18 +315,17 @@ def build_guard(material, parent):
 
 
 def build_handle(material, parent):
-    """Smooth black grip: slim neck, palm swell, a waist, then a flared butt
-    that hooks toward the edge side (a bird's-head pommel)."""
+    """Straight smooth black grip: slim neck, palm swell, a waist, then a
+    slightly flared rounded butt."""
     bm = bmesh.new()
     steps = 30
-    width = [(0.0, 0.88), (0.32, 1.04), (0.68, 0.9), (0.9, 1.16), (1.0, 1.08)]
-    height = [(0.0, 0.88), (0.32, 1.0), (0.68, 0.9), (0.9, 1.22), (1.0, 1.15)]
+    width = [(0.0, 0.9), (0.3, 1.03), (0.7, 0.95), (0.92, 1.08), (1.0, 1.04)]
+    height = [(0.0, 0.9), (0.3, 1.0), (0.7, 0.94), (0.92, 1.1), (1.0, 1.06)]
     centers, radii = [], []
     for k in range(steps + 1):
         u = k / steps
         y = HANDLE_TOP - u * HANDLE_LEN
-        z = -HANDLE_HOOK * smoothstep(0.55, 1.0, u) ** 1.3
-        centers.append(Vector((0.0, y, z)))
+        centers.append(Vector((0.0, y, 0.0)))
         radii.append((HANDLE_RX * lerp_profile(width, u), HANDLE_RZ * lerp_profile(height, u)))
 
     # round off the butt with a few shrinking rings before closing it

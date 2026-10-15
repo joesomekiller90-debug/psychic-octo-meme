@@ -2,9 +2,18 @@
 
 ![Knife preview](knife_preview.png)
 
-A Bowie-style knife for a Roblox duels game. It has a wide clip-point blade with a sharpened false edge along the clip and a bright cutting bevel, a slim gold crescent guard with a gold collar, and a smooth black grip whose end hooks toward the edge side.
+A Bowie-style knife for a Roblox duels game. It has a slim gold crescent guard with a gold collar and a straight, smooth black grip. The wide clip-point blade has:
 
-- **2,912 triangles** in total, well under Roblox's 20k-per-mesh limit.
+- a sharpened false edge along the clip
+- a fuller (groove) along the flat
+- thumb notches (jimping) on the spine near the guard
+- an unsharpened section (ricasso) with a plunge line where the grind starts
+- a small notch (choil) at the start of the edge
+- a bright cutting bevel along the edge
+
+The model:
+
+- **4,192 triangles** in total, well under Roblox's 20k-per-mesh limit.
 - **About 3.3 studs long.** 1 Blender unit = 1 stud.
 - **Three parts, one material each:** `Blade`, `Guard` (which includes the collar) and `Handle`. The grip part is named `Handle`, which is the name a Roblox `Tool` needs.
 
@@ -18,7 +27,7 @@ A Bowie-style knife for a Roblox duels game. It has a wide clip-point blade with
 
 ## Getting it into Roblox Studio
 
-1. **Home → Import 3D**, then pick `Knife.fbx`. In the import settings, set **Scale Unit** to **Stud**. Check the sizes: `Blade` should be about 0.1 × 0.54 × 1.8 studs and `Handle` about 0.28 × 0.5 × 1.24.
+1. **Home → Import 3D**, then pick `Knife.fbx`. In the import settings, set **Scale Unit** to **Stud**. Check the sizes: `Blade` should be about 0.1 × 0.54 × 1.8 studs and `Handle` about 0.26 × 0.37 × 1.23.
 2. Create a **Tool** in `StarterPack` and name it `Knife`. Move `Blade`, `Guard` and `Handle` from the imported model into the Tool, then delete the empty model.
 3. Add a **Script** to the Tool and paste in `KnifeSetup.server.luau`. It welds the parts to `Handle` and sets materials, colours, `CanCollide = false` and `Massless = true`.
 4. Press Play. The knife is held by the grip with the blade pointing forward and the edge facing down. To angle it differently, for example blade up or reverse grip, edit `Tool.Grip` or use a tool grip editor plugin.
@@ -27,7 +36,7 @@ The model faces the part's LookVector (-Z) with Y up. That is why the default `T
 
 ## Changing the design
 
-All proportions are constants at the top of `build_knife.py`, for example `BLADE_LEN`, `SPINE_Z`, `EDGE_Z`, `CLIP_START`, `HANDLE_*` and `GUARD_*`. Colours are set in `main()`. To rebuild everything, run either of these:
+All proportions are constants at the top of `build_knife.py`, for example `BLADE_LEN`, `SPINE_Z`, `EDGE_Z`, `CLIP_START`, `FULLER`, `JIMPING`, `CHOIL`, `HANDLE_*` and `GUARD_*`. Colours are set in `main()`. To rebuild everything, run either of these:
 
 ```bash
 pip install bpy          # Blender as a Python module (needs Python 3.13)
