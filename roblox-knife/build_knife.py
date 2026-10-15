@@ -1,4 +1,4 @@
-"""Builds a low-poly duel knife for Roblox and exports it.
+"""Builds a Bowie-style duel knife for Roblox and exports it.
 
 Run with Blender:   blender --background --python build_knife.py
 or with pip's bpy:  python build_knife.py
@@ -9,7 +9,7 @@ turns into a blade pointing along the part's LookVector with the edge down.
 
 Outputs (next to this script):
   Knife.blend           editable source scene
-  Knife.fbx             4 MeshParts: Blade, Guard, Handle, Pommel
+  Knife.fbx             3 MeshParts: Blade, Guard, Handle
   Knife_Combined.fbx    the same knife as a single mesh
   knife_preview.png     render
 """
@@ -27,26 +27,29 @@ OUT_DIR = os.path.dirname(os.path.abspath(__file__))
 # ---------------------------------------------------------------------------
 # Dimensions (studs)
 # ---------------------------------------------------------------------------
-BLADE_START = -0.04  # blade root sits inside the guard
-BLADE_LEN = 1.65
-SPINE_Z = 0.17       # top of the blade (spine)
-EDGE_Z = -0.25       # bottom of the blade (cutting edge)
-SPINE_HALF_T = 0.045  # half thickness at the spine
-GRIND = 0.42         # grind line height, as a fraction from the edge to the spine
+BLADE_START = 0.0     # blade root sits inside the guard
+BLADE_LEN = 1.8
+SPINE_Z = 0.21        # top of the blade (spine)
+EDGE_Z = -0.33        # bottom of the blade (cutting edge)
+TIP_Z = 0.03          # height of the point
+CLIP_START = 0.56     # fraction of the length where the clip point begins
+BELLY_START = 0.42    # fraction of the length where the edge starts sweeping up
+SPINE_HALF_T = 0.05   # half thickness at the spine
+GRIND = 0.66          # primary grind line, as a fraction from the edge to the spine
+EDGE_BEVEL = 0.14     # secondary (cutting) bevel height, same scale
 
-GUARD_HALF = Vector((0.15, 0.06, 0.0))  # x, y half sizes; z from GUARD_Z
-GUARD_Z = (-0.42, 0.31)
+GUARD_Z = (-0.5, 0.36)    # crescent guard extent, edge side to spine side
+GUARD_CURVE = 0.2         # how far the guard tips sweep toward the blade
+GUARD_R = (0.085, 0.06)   # guard cross-section radii (x, y)
 
-HANDLE_TOP = -0.06
-HANDLE_BOTTOM = -1.08
-HANDLE_RX = 0.125
-HANDLE_RZ = 0.165
-WRAPS = 7
+HANDLE_TOP = -0.08
+HANDLE_LEN = 1.12
+HANDLE_RX = 0.12
+HANDLE_RZ = 0.17
+HANDLE_HOOK = 0.13        # how far the butt hooks toward the edge side
 
-POMMEL_BOTTOM = -1.30
-
-RING_SEGMENTS = 16
-SMOOTH_ANGLE = math.radians(32)
+RING_SEGMENTS = 20
+SMOOTH_ANGLE = math.radians(50)
 
 
 # ---------------------------------------------------------------------------
@@ -71,14 +74,16 @@ def make_material(name, color, metallic, roughness):
 
 
 def bm_to_object(bm, name, material, parent=None, smooth_angle=SMOOTH_ANGLE):
+    """smooth_angle=None keeps the sharp edges already marked in the bmesh."""
     mesh = bpy.data.meshes.new(name)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    for face in bm.faces:
+        face.smooth = True
     bm.to_mesh(mesh)
     bm.free()
 
-    for poly in mesh.polygons:
-        poly.use_smooth = True
-    mesh.set_sharp_from_angle(angle=smooth_angle)
+    if smooth_angle is not None:
+        mesh.set_sharp_from_angle(angle=smooth_angle)
     mesh.materials.append(material)
 
     obj = bpy.data.objects.new(name, mesh)
@@ -92,6 +97,7 @@ def loft(bm, rings, cap_start=True, cap_end=True):
     """Bridges a list of equal-length vertex rings with quads.
 
     A ring of length 1 is treated as a point and fanned with triangles.
+    Returns the created vertex rings.
     """
     vert_rings = [[bm.verts.new(co) for co in ring] for ring in rings]
     for a, b in zip(vert_rings, vert_rings[1:]):
@@ -112,11 +118,34 @@ def loft(bm, rings, cap_start=True, cap_end=True):
     return vert_rings
 
 
-def ellipse(y, rx, rz, n=RING_SEGMENTS):
+def swept_ring(center, tangent, side, r_side, r_other, n=RING_SEGMENTS):
+    """Ellipse around `center`, perpendicular to `tangent`. `side` is the
+    direction the r_side radius points along."""
+    t = tangent.normalized()
+    a = (side - t * side.dot(t)).normalized()
+    b = t.cross(a).normalized()
     return [
-        Vector((rx * math.cos(2 * math.pi * i / n), y, rz * math.sin(2 * math.pi * i / n)))
+        center
+        + a * (r_side * math.cos(2 * math.pi * i / n))
+        + b * (r_other * math.sin(2 * math.pi * i / n))
         for i in range(n)
     ]
+
+
+def sweep(bm, centers, radii, side, n=RING_SEGMENTS, end_points=(None, None)):
+    """Lofts ellipses along a polyline. Optional end points close each end
+    with a rounded fan instead of a flat cap."""
+    rings = []
+    for k, (c, (rs, ro)) in enumerate(zip(centers, radii)):
+        prev_c = centers[max(k - 1, 0)]
+        next_c = centers[min(k + 1, len(centers) - 1)]
+        rings.append(swept_ring(c, next_c - prev_c, side, rs, ro, n))
+    start, end = end_points
+    if start is not None:
+        rings.insert(0, [start])
+    if end is not None:
+        rings.append([end])
+    return loft(bm, rings, cap_start=start is None, cap_end=end is None)
 
 
 def smoothstep(e0, e1, x):
@@ -124,117 +153,138 @@ def smoothstep(e0, e1, x):
     return t * t * (3 - 2 * t)
 
 
+def lerp_profile(profile, u):
+    """Piecewise-smooth interpolation through (u, value) keys."""
+    for (u0, v0), (u1, v1) in zip(profile, profile[1:]):
+        if u <= u1:
+            return v0 + (v1 - v0) * smoothstep(u0, u1, u)
+    return profile[-1][1]
+
+
 # ---------------------------------------------------------------------------
 # Parts
 # ---------------------------------------------------------------------------
+def blade_profile(t):
+    """Spine and edge heights at fraction t along the blade."""
+    # clip point: the spine dips in a concave curve down to the point
+    s = max(0.0, (t - CLIP_START) / (1 - CLIP_START))
+    z_top = SPINE_Z - (SPINE_Z - TIP_Z) * (1 - (1 - s) ** 1.9)
+    # belly: the edge sweeps up in a convex curve to the point
+    b = max(0.0, (t - BELLY_START) / (1 - BELLY_START))
+    z_bot = EDGE_Z + (TIP_Z - EDGE_Z) * b ** 2.3
+    return z_top, z_bot
+
+
 def build_blade(material, parent):
-    """Drop-point blade with a sabre grind, a swedge on the spine near the tip,
-    and a belly that sweeps up into the point."""
+    """Bowie blade: clip point with a sharpened swedge, flat primary grind and
+    a bright secondary cutting bevel along the edge."""
     bm = bmesh.new()
-    tip_z = 0.02
-    stations = 22
+    stations = 30
     rings = []
     for k in range(stations):
         t = k / stations
-        # cluster stations toward the tip where the profile curves
-        t = 1 - (1 - t) ** 1.6
+        t = 1 - (1 - t) ** 1.5  # more stations toward the curved tip
         y = BLADE_START + t * BLADE_LEN
+        z_top, z_bot = blade_profile(t)
+        h = z_top - z_bot
 
-        # spine drops toward the tip after 62% of the length
-        drop = smoothstep(0.62, 1.0, t)
-        z_top = SPINE_Z + (tip_z - SPINE_Z) * drop ** 1.3
-        # edge sweeps up (belly) after 55% of the length
-        belly = smoothstep(0.55, 1.0, t)
-        z_bot = EDGE_Z + (tip_z - EDGE_Z) * belly ** 1.7
-
-        # thickness tapers along the blade, faster in the swedge zone
-        half_t = SPINE_HALF_T * (1 - 0.35 * t) * (1 - 0.75 * smoothstep(0.7, 1.0, t))
-        z_grind = z_bot + (z_top - z_bot) * GRIND
-        edge_half_t = 0.004 * (1 - t)
+        taper = 1 - 0.45 * t
+        spine_t = SPINE_HALF_T * taper
+        # the clip is ground to a false edge
+        clip_t = spine_t * (1 - 0.85 * smoothstep(CLIP_START, CLIP_START + 0.16, t))
+        bevel_t = spine_t * 0.38
+        edge_t = 0.004 * (1 - t)
+        z_grind = z_bot + h * GRIND
+        z_bevel = z_bot + h * EDGE_BEVEL
 
         rings.append([
-            Vector((half_t, y, z_top)),
-            Vector((half_t, y, z_grind)),
-            Vector((edge_half_t, y, z_bot)),
-            Vector((-edge_half_t, y, z_bot)),
-            Vector((-half_t, y, z_grind)),
-            Vector((-half_t, y, z_top)),
+            Vector((clip_t, y, z_top)),
+            Vector((spine_t, y, z_grind)),
+            Vector((bevel_t, y, z_bevel)),
+            Vector((edge_t, y, z_bot)),
+            Vector((-edge_t, y, z_bot)),
+            Vector((-bevel_t, y, z_bevel)),
+            Vector((-spine_t, y, z_grind)),
+            Vector((-clip_t, y, z_top)),
         ])
-    rings.append([Vector((0.0, BLADE_START + BLADE_LEN, tip_z))])
-    loft(bm, rings, cap_start=True, cap_end=False)
-    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
-    # the grind bevel is only ~13 degrees off the flat, so shade the blade flat
-    # to keep the spine, grind line and edge crisp
-    return bm_to_object(bm, "Blade", material, parent, smooth_angle=0.0)
+    rings.append([Vector((0.0, BLADE_START + BLADE_LEN, TIP_Z))])
+    vert_rings = loft(bm, rings, cap_start=True, cap_end=False)
+
+    # every lengthwise edge is a bevel crease; the cross edges stay smooth so
+    # the curved clip and belly shade cleanly
+    ring_of = {v: k for k, ring in enumerate(vert_rings) for v in ring}
+    for e in bm.edges:
+        a, b = (ring_of[v] for v in e.verts)
+        if a != b or a == 0:
+            e.smooth = False
+    return bm_to_object(bm, "Blade", material, parent, smooth_angle=None)
 
 
 def build_guard(material, parent):
+    """Slim gold crescent guard whose tips sweep toward the blade, plus the
+    gold collar between the guard and the grip."""
     bm = bmesh.new()
-    bmesh.ops.create_cube(bm, size=1.0)
     z0, z1 = GUARD_Z
-    for v in bm.verts:
-        v.co.x *= GUARD_HALF.x * 2
-        v.co.y *= GUARD_HALF.y * 2
-        v.co.z = (z0 + z1) / 2 + v.co.z * (z1 - z0)
-    # taper the quillons: thinner at the ends than at the centre
-    bmesh.ops.subdivide_edges(
-        bm,
-        edges=[e for e in bm.edges if abs(e.verts[0].co.z - e.verts[1].co.z) > 0.1],
-        cuts=2,
-        use_grid_fill=True,
-    )
-    for v in bm.verts:
-        end = abs(v.co.z - (z0 + z1) / 2) / ((z1 - z0) / 2)
-        v.co.x *= 1 - 0.3 * end
-        # sweep the lower quillon slightly forward, toward the blade
-        if v.co.z < z0 + 0.2:
-            v.co.y += 0.06 * smoothstep(z0 + 0.2, z0, v.co.z)
-    bmesh.ops.bevel(
-        bm,
-        geom=list(bm.edges),
-        offset=0.025,
-        segments=2,
-        profile=0.5,
-        affect='EDGES',
-    )
-    return bm_to_object(bm, "Guard", material, parent)
+    zc = (z0 + z1) / 2
+    half = (z1 - z0) / 2
+    steps = 22
+    centers, radii = [], []
+    for k in range(steps + 1):
+        z = z0 + (z1 - z0) * k / steps
+        u = (z - zc) / half  # -1 .. 1
+        # flat across the blade root so it stays covered, sweeping only at the tips
+        y = 0.0 + GUARD_CURVE * u ** 4
+        centers.append(Vector((0.0, y, z)))
+        # thick in the middle, thin arms, small rounded knobs at the tips
+        end = abs(u)
+        scale = 1.0 - 0.4 * smoothstep(0.7, 0.88, end) + 0.2 * smoothstep(0.88, 0.97, end)
+        radii.append((GUARD_R[0] * scale, GUARD_R[1] * scale))
+    tip_lo = centers[0] + (centers[0] - centers[1]).normalized() * radii[0][1] * 0.9
+    tip_hi = centers[-1] + (centers[-1] - centers[-2]).normalized() * radii[-1][1] * 0.9
+    sweep(bm, centers, radii, Vector((1, 0, 0)), end_points=(tip_lo, tip_hi))
+
+    # collar: short oval band around the top of the grip
+    collar = [  # (y, scale)
+        (-0.02, 0.86),
+        (-0.04, 1.0),
+        (-0.13, 1.0),
+        (-0.15, 0.9),
+    ]
+    rings = [
+        swept_ring(Vector((0, y, 0)), Vector((0, 1, 0)), Vector((1, 0, 0)),
+                   HANDLE_RX * 1.08 * s, HANDLE_RZ * 1.02 * s)
+        for y, s in collar
+    ]
+    loft(bm, rings)
+    return bm_to_object(bm, "Guard", material, parent, smooth_angle=math.radians(40))
 
 
 def build_handle(material, parent):
-    """Oval grip with raised cord wraps."""
+    """Smooth black grip: slim neck, palm swell, a waist, then a flared butt
+    that hooks toward the edge side (a bird's-head pommel)."""
     bm = bmesh.new()
-    length = HANDLE_TOP - HANDLE_BOTTOM
-    wrap_len = length / WRAPS
-    gap = wrap_len * 0.18
-    rings = []
-    for w in range(WRAPS):
-        y0 = HANDLE_TOP - w * wrap_len
-        y1 = y0 - wrap_len
-        for y, ridge in ((y0, 0.92), (y0 - gap, 1.0), (y1 + gap, 1.0), (y1, 0.92)):
-            # gentle palm swell around the middle of the grip
-            u = (HANDLE_TOP - y) / length
-            swell = 1 + 0.08 * math.sin(math.pi * u)
-            rings.append(ellipse(y, HANDLE_RX * ridge * swell, HANDLE_RZ * ridge * swell))
-    loft(bm, rings)
-    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
+    steps = 30
+    width = [(0.0, 0.88), (0.32, 1.04), (0.68, 0.9), (0.9, 1.16), (1.0, 1.08)]
+    height = [(0.0, 0.88), (0.32, 1.0), (0.68, 0.9), (0.9, 1.22), (1.0, 1.15)]
+    centers, radii = [], []
+    for k in range(steps + 1):
+        u = k / steps
+        y = HANDLE_TOP - u * HANDLE_LEN
+        z = -HANDLE_HOOK * smoothstep(0.55, 1.0, u) ** 1.3
+        centers.append(Vector((0.0, y, z)))
+        radii.append((HANDLE_RX * lerp_profile(width, u), HANDLE_RZ * lerp_profile(height, u)))
+
+    # round off the butt with a few shrinking rings before closing it
+    last, prev = centers[-1], centers[-2]
+    direction = (last - prev).normalized()
+    rx, rz = radii[-1]
+    for f in (0.35, 0.65, 0.88):
+        centers.append(last + direction * (rx * 0.9 * f))
+        shrink = math.sqrt(1 - f * f)
+        radii.append((rx * shrink, rz * shrink))
+    butt = last + direction * rx * 0.9
+    sweep(bm, centers, radii, Vector((1, 0, 0)), end_points=(None, butt))
     return bm_to_object(bm, "Handle", material, parent)
-
-
-def build_pommel(material, parent):
-    bm = bmesh.new()
-    top = HANDLE_BOTTOM + 0.02
-    h = top - POMMEL_BOTTOM
-    profile = [  # (fraction down the pommel, radius scale)
-        (0.00, 0.90),
-        (0.18, 1.18),
-        (0.62, 1.18),
-        (0.80, 1.00),
-        (1.00, 0.62),
-    ]
-    rings = [ellipse(top - f * h, HANDLE_RX * s, HANDLE_RZ * s) for f, s in profile]
-    rings.append([Vector((0.0, POMMEL_BOTTOM - 0.015, 0.0))])
-    loft(bm, rings, cap_start=True, cap_end=False)
-    return bm_to_object(bm, "Pommel", material, parent)
 
 
 # ---------------------------------------------------------------------------
@@ -263,18 +313,18 @@ def setup_render(scene, target):
     world = bpy.data.worlds.new("World")
     world.use_nodes = True
     nodes, links = world.node_tree.nodes, world.node_tree.links
-    # studio gradient (dark floor, bright ceiling) so the steel has something to reflect
+    # sky-blue studio gradient (dark floor, bright ceiling) so the steel has something to reflect
     coords = nodes.new("ShaderNodeTexCoord")
     sep = nodes.new("ShaderNodeSeparateXYZ")
     ramp = nodes.new("ShaderNodeValToRGB")
     ramp.color_ramp.elements[0].position = 0.35
-    ramp.color_ramp.elements[0].color = (0.03, 0.035, 0.045, 1)
+    ramp.color_ramp.elements[0].color = (0.2, 0.22, 0.26, 1)
     ramp.color_ramp.elements[1].position = 0.75
-    ramp.color_ramp.elements[1].color = (0.9, 0.92, 1.0, 1)
+    ramp.color_ramp.elements[1].color = (0.75, 0.88, 1.0, 1)
     links.new(coords.outputs["Generated"], sep.inputs["Vector"])
     links.new(sep.outputs["Z"], ramp.inputs["Fac"])
     links.new(ramp.outputs["Color"], nodes["Background"].inputs["Color"])
-    nodes["Background"].inputs["Strength"].default_value = 0.8
+    nodes["Background"].inputs["Strength"].default_value = 0.9
     scene.world = world
 
     def light(name, kind, loc, energy, size, color=(1, 1, 1)):
@@ -294,9 +344,9 @@ def setup_render(scene, target):
     light("Rim", 'AREA', (-0.5, 3.0, -2.0), 500, 2.0, (1.0, 0.85, 0.7))
 
     cam_data = bpy.data.cameras.new("Camera")
-    cam_data.lens = 62
+    cam_data.lens = 58
     cam = bpy.data.objects.new("Camera", cam_data)
-    cam.location = (5.0, -0.9, 2.4)
+    cam.location = (5.4, -0.9, 2.3)
     cam.rotation_euler = (target - cam.location).to_track_quat('-Z', 'Y').to_euler()
     scene.collection.objects.link(cam)
     scene.camera = cam
@@ -375,18 +425,17 @@ def export(parts, root):
 def main():
     scene = reset_scene()
 
-    steel = make_material("BladeSteel", (0.80, 0.82, 0.85), 1.0, 0.22)
-    brass = make_material("GuardGold", (0.83, 0.62, 0.22), 1.0, 0.3)
-    grip = make_material("GripWrap", (0.012, 0.012, 0.014), 0.0, 0.85)
+    steel = make_material("BladeSteel", (0.88, 0.9, 0.93), 1.0, 0.16)
+    gold = make_material("GuardGold", (0.95, 0.68, 0.2), 1.0, 0.25)
+    grip = make_material("GripBlack", (0.01, 0.01, 0.012), 0.0, 0.45)
 
     root = bpy.data.objects.new("KnifeModel", None)
     scene.collection.objects.link(root)
 
     parts = [
         build_blade(steel, root),
-        build_guard(brass, root),
+        build_guard(gold, root),
         build_handle(grip, root),
-        build_pommel(brass, root),
     ]
     uv_unwrap(parts)
     set_origin_to_bounds(parts)
@@ -398,7 +447,7 @@ def main():
     for p in parts:
         print(f"  {p.name:7s} size (studs) {tuple(round(d, 3) for d in p.dimensions)}")
 
-    setup_render(scene, target=Vector((0.0, 0.17, -0.05)))
+    setup_render(scene, target=Vector((0.0, 0.2, -0.05)))
     export(parts, root)
     preview = os.path.join(OUT_DIR, "knife_preview.png")
     scene.render.filepath = preview

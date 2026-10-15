@@ -1,5 +1,5 @@
 --!strict
--- Put this Script inside the Knife Tool, next to Handle, Blade, Guard and Pommel.
+-- Put this Script inside the Knife Tool, next to Handle, Blade and Guard.
 -- It welds every part to Handle so the knife moves as one piece when equipped,
 -- and gives each part its Roblox material and colour.
 
@@ -8,12 +8,10 @@ local handle = tool:WaitForChild("Handle") :: BasePart
 
 type Look = { Material: Enum.Material, Color: Color3, Reflectance: number? }
 
-local GOLD = Color3.fromRGB(212, 158, 56)
 local LOOKS: { [string]: Look } = {
-	Blade = { Material = Enum.Material.SmoothPlastic, Color = Color3.fromRGB(205, 210, 218), Reflectance = 0.3 },
-	Guard = { Material = Enum.Material.Metal, Color = GOLD },
-	Pommel = { Material = Enum.Material.Metal, Color = GOLD },
-	Handle = { Material = Enum.Material.Fabric, Color = Color3.fromRGB(20, 20, 22) },
+	Blade = { Material = Enum.Material.SmoothPlastic, Color = Color3.fromRGB(215, 222, 230), Reflectance = 0.35 },
+	Guard = { Material = Enum.Material.SmoothPlastic, Color = Color3.fromRGB(235, 175, 55), Reflectance = 0.15 },
+	Handle = { Material = Enum.Material.SmoothPlastic, Color = Color3.fromRGB(18, 18, 20) },
 }
 
 for _, part in tool:GetDescendants() do
