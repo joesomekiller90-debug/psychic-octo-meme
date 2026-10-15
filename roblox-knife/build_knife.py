@@ -51,9 +51,9 @@ GUARD_CURVE = 0.16        # how far the guard tips sweep toward the blade
 GUARD_R = (0.08, 0.055)  # guard cross-section radii (x, y)
 
 HANDLE_TOP = -0.08
-HANDLE_LEN = 1.12
-HANDLE_RX = 0.12
-HANDLE_RZ = 0.17
+HANDLE_LEN = 1.0
+HANDLE_RX = 0.108
+HANDLE_RZ = 0.153
 
 RING_SEGMENTS = 20
 SMOOTH_ANGLE = math.radians(50)
@@ -501,7 +501,7 @@ def main():
     for p in parts:
         print(f"  {p.name:7s} size (studs) {tuple(round(d, 3) for d in p.dimensions)}")
 
-    setup_render(scene, target=Vector((0.0, 0.05, -0.04)))
+    setup_render(scene, target=Vector((0.0, 0.11, -0.04)))
     export(parts, root)
     preview = os.path.join(OUT_DIR, "knife_preview.png")
     scene.render.filepath = preview
